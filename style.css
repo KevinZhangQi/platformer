@@ -1,0 +1,31 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d0d1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+#wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+#game {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 3px solid #2a2a4a;
+  box-shadow: 0 0 40px rgba(92, 148, 252, 0.25);
+}
+
+#hint {
+  color: #44445a;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
