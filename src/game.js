@@ -337,8 +337,10 @@ class Player {
     this.onGround = false;
     this.dir  = 1;   // 1=right, -1=left
     this.frame = 0;
-    this.ftick = 0;
-    this.dead  = false;
+    this.ftick      = 0;
+    this.dead       = false;
+    this.jumpBuffer = 0;   // frames: remembered jump press (input buffer)
+    this.coyoteTime = 0;   // frames: grace period after walking off edge
   }
 
   update(map, jumpPressed) {
@@ -354,10 +356,23 @@ class Player {
     if (inp.right()) { moveX =  SPD; this.dir =  1; }
     this.vx = moveX;
 
-    // jump
-    if (jumpPressed && this.onGround) {
-      this.vy = JV;
-      this.onGround = false;
+    // --- jump buffer: remember press for up to 10 frames ---
+    if (jumpPressed) this.jumpBuffer = 10;
+    else if (this.jumpBuffer > 0) this.jumpBuffer--;
+
+    // --- coyote time: allow jump for 6 frames after leaving ground ---
+    if (this.onGround) {
+      this.coyoteTime = 6;
+    } else if (this.coyoteTime > 0) {
+      this.coyoteTime--;
+    }
+
+    // --- trigger jump when buffer + coyote time both active ---
+    if (this.jumpBuffer > 0 && this.coyoteTime > 0) {
+      this.vy         = JV;
+      this.jumpBuffer = 0;
+      this.coyoteTime = 0;
+      this.onGround   = false;
     }
 
     // gravity
