@@ -7,10 +7,15 @@ const T=16,SW=256,SH=240,SCALE=3,GV=0.40,JV=-8.2,SPD=2.2,LT=180,HUD_H=16,LEVEL_W
 const display = document.getElementById('game');
 display.width  = SW * SCALE;
 display.height = SH * SCALE;
-display.style.width  = '';
-display.style.height = '';
 const dctx = display.getContext('2d');
 dctx.imageSmoothingEnabled = false;
+function resizeDisplay() {
+  const s = Math.min(window.innerWidth / (SW * SCALE), (window.innerHeight - 30) / (SH * SCALE));
+  display.style.width  = Math.floor(SW * SCALE * s) + 'px';
+  display.style.height = Math.floor(SH * SCALE * s) + 'px';
+}
+resizeDisplay();
+window.addEventListener('resize', resizeDisplay);
 
 const OC  = document.createElement('canvas');
 OC.width  = SW; OC.height = SH;
@@ -215,7 +220,8 @@ class Player{
     if(this.jumpBuffer>0&&this.coyoteTime>0){
       this.vy=JV; this.jumpBuffer=0; this.coyoteTime=0; this.onGround=false;
     }
-    this.vy+=GV; if(this.vy>14) this.vy=14;
+    // 落地时不施加重力，避免每帧下沉导致平台穿透
+    if(!this.onGround){ this.vy+=GV; if(this.vy>14) this.vy=14; }
     this.x+=this.vx; this.x=Math.max(0,this.x); this._resolveX(map);
     const prevBottom=this.y+this.h;
     this.y+=this.vy; this.onGround=false; this._resolveY(map,prevBottom);
@@ -234,11 +240,15 @@ class Player{
   }
   _resolveY(map,prevBottom){
     const left=((this.x+1)/T)|0, right=((this.x+this.w-2)/T)|0;
-    const top=(this.y/T)|0, bot=((this.y+this.h-1)/T)|0;
+    const top=(this.y/T)|0;
+    // 用 newBottom/T 而非 (newBottom-1)/T，避免底边恰好在格子顶部时检测错行
+    const newBottom=this.y+this.h;
+    const bot=(newBottom/T)|0;
     if(this.vy>=0){
       for(let col=left;col<=right;col++){
         if(map.solid(col,bot)){ this.y=bot*T-this.h; this.vy=0; this.onGround=true; return; }
-        if(map.oneway(col,bot)&&prevBottom<=bot*T){ this.y=bot*T-this.h; this.vy=0; this.onGround=true; return; }
+        // 允许2px容差：修复落地后重力微漂导致 prevBottom 略超平台表面的问题
+        if(map.oneway(col,bot)&&prevBottom<=bot*T+2){ this.y=bot*T-this.h; this.vy=0; this.onGround=true; return; }
       }
     } else {
       for(let col=left;col<=right;col++){
