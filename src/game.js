@@ -341,9 +341,10 @@ class Player {
     this.dead       = false;
     this.jumpBuffer = 0;   // frames: remembered jump press (input buffer)
     this.coyoteTime = 0;   // frames: grace period after walking off edge
+    this.jumpHeld   = false; // jump key state last frame (for edge detection)
   }
 
-  update(map, jumpPressed) {
+  update(map) {
     if (this.dead) {
       this.vy += GV;
       this.y  += this.vy;
@@ -356,8 +357,13 @@ class Player {
     if (inp.right()) { moveX =  SPD; this.dir =  1; }
     this.vx = moveX;
 
+    // --- jump: detect rising edge inside the game loop (more reliable than KD events) ---
+    const jumpNow = inp.jumpH();
+    const jumpJustPressed = jumpNow && !this.jumpHeld;
+    this.jumpHeld = jumpNow;
+
     // --- jump buffer: remember press for up to 10 frames ---
-    if (jumpPressed) this.jumpBuffer = 10;
+    if (jumpJustPressed) this.jumpBuffer = 10;
     else if (this.jumpBuffer > 0) this.jumpBuffer--;
 
     // --- coyote time: allow jump for 6 frames after leaving ground ---
@@ -606,7 +612,7 @@ function update(dt) {
       timeAcc += dt;
       if (timeAcc >= 1) { timeAcc -= 1; timeLeft = Math.max(0, timeLeft - 1); }
 
-      player.update(map, inp.jumpD());
+      player.update(map);
       mouse.update();
       cam.follow(player);
 
