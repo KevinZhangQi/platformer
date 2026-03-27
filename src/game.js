@@ -3,14 +3,19 @@
 
 const T=16,SW=256,SH=240,SCALE=3,GV=0.40,JV=-8.2,SPD=2.2,LT=180,HUD_H=16,LEVEL_W=110;
 
-// ── 离屏Canvas（游戏渲染到OC，再1:1缩放到display canvas）──────────────────
+// ── 离屏Canvas ──────────────────────────────────────────────────────────────
 const display = document.getElementById('game');
 display.width  = SW * SCALE;
 display.height = SH * SCALE;
-display.style.width  = '';
-display.style.height = '';
 const dctx = display.getContext('2d');
 dctx.imageSmoothingEnabled = false;
+function resizeDisplay() {
+  const s = Math.min(window.innerWidth / (SW * SCALE), (window.innerHeight - 30) / (SH * SCALE));
+  display.style.width  = Math.floor(SW * SCALE * s) + 'px';
+  display.style.height = Math.floor(SH * SCALE * s) + 'px';
+}
+resizeDisplay();
+window.addEventListener('resize', resizeDisplay);
 
 const OC  = document.createElement('canvas');
 OC.width  = SW; OC.height = SH;
@@ -46,29 +51,22 @@ const CAT_PALS=[
   {name:'棕 猫', bd:'#804020', bl:'#d09060', ey:'#40b888', er:'#603010', sk:'#502808'},
 ];
 
-// ── 猫咪精灵（16×16，hitbox 12×14）────────────────────────────────────────
+// ── 猫咪精灵 ──────────────────────────────────────────────────────────────
 function drawCat(x,y,dir,frame,pal){
   x=x|0; y=y|0;
   if(dir<0){ ctx.save(); ctx.translate(x+8,y); ctx.scale(-1,1); ctx.translate(-8,0); x=0;y=0; }
   const {bd,bl,ey,er,sk}=pal;
-  // 尾巴（左侧，身后）
   px(bd,x+0,y+5,2,6); px(bd,x+1,y+4,2,7); px(bd,x+0,y+10,3,2);
-  // 身体
   px(bd,x+3,y+7,10,5);
-  px(bl,x+5,y+8,6,3);   // 肚皮
-  // 头
+  px(bl,x+5,y+8,6,3);
   px(bd,x+5,y+2,9,6);
-  px(sk,x+5,y+2,9,1);   // 头顶暗色
-  // 耳朵
+  px(sk,x+5,y+2,9,1);
   px(bd,x+6,y+0,3,3); px(er,x+7,y+1,1,1);
   px(bd,x+11,y+0,3,3); px(er,x+12,y+1,1,1);
-  // 眼睛
   px(ey,x+7,y+3,2,2);  px('#fff',x+7,y+3,1,1);  px('#000',x+8,y+4,1,1);
   px(ey,x+11,y+3,2,2); px('#fff',x+11,y+3,1,1); px('#000',x+12,y+4,1,1);
-  // 鼻子 & 胡须
   px('#ffaaaa',x+10,y+6,2,1); px('#cc5555',x+10,y+6,1,1);
   px('#b0b0b0',x+3,y+5,2,1); px('#b0b0b0',x+3,y+6,2,1);
-  // 腿
   const f=frame&1;
   if(frame===4){
     px(bd,x+4,y+11,3,2); px(bd,x+9,y+11,3,2);
@@ -214,7 +212,8 @@ class Player{
     if(this.jumpBuffer>0&&this.coyoteTime>0){
       this.vy=JV; this.jumpBuffer=0; this.coyoteTime=0; this.onGround=false;
     }
-    this.vy+=GV; if(this.vy>14) this.vy=14;
+    // 落地时不施加重力，避免每帧下沉导致平台穿透
+    if(!this.onGround){ this.vy+=GV; if(this.vy>14) this.vy=14; }
     this.x+=this.vx; this.x=Math.max(0,this.x); this._resolveX(map);
     const prevBottom=this.y+this.h;
     this.y+=this.vy; this.onGround=false; this._resolveY(map,prevBottom);
@@ -233,11 +232,15 @@ class Player{
   }
   _resolveY(map,prevBottom){
     const left=((this.x+1)/T)|0, right=((this.x+this.w-2)/T)|0;
-    const top=(this.y/T)|0, bot=((this.y+this.h-1)/T)|0;
+    const top=(this.y/T)|0;
+    // 用 newBottom/T 而非 (newBottom-1)/T，避免底边恰好在格子顶部时检测错行
+    const newBottom=this.y+this.h;
+    const bot=(newBottom/T)|0;
     if(this.vy>=0){
       for(let col=left;col<=right;col++){
         if(map.solid(col,bot)){ this.y=bot*T-this.h; this.vy=0; this.onGround=true; return; }
-        if(map.oneway(col,bot)&&prevBottom<=bot*T){ this.y=bot*T-this.h; this.vy=0; this.onGround=true; return; }
+        // 允许2px容差：修复落地后重力微漂导致 prevBottom 略超平台表面的问题
+        if(map.oneway(col,bot)&&prevBottom<=bot*T+2){ this.y=bot*T-this.h; this.vy=0; this.onGround=true; return; }
       }
     } else {
       for(let col=left;col<=right;col++){
