@@ -3,7 +3,7 @@
 
 const T=16,SW=256,SH=240,SCALE=3,GV=0.40,JV=-8.2,SPD=2.2,LT=180,HUD_H=16,LEVEL_W=110;
 
-// ── 离屏Canvas（游戏渲染到OC，再1:1缩放到display canvas）──────────────────
+// ── 离屏Canvas ──────────────────────────────────────────────────────────────
 const display = document.getElementById('game');
 display.width  = SW * SCALE;
 display.height = SH * SCALE;
@@ -51,29 +51,22 @@ const CAT_PALS=[
   {name:'棕 猫', bd:'#804020', bl:'#d09060', ey:'#40b888', er:'#603010', sk:'#502808'},
 ];
 
-// ── 猫咪精灵（16×16，hitbox 12×14）────────────────────────────────────────
+// ── 猫咪精灵 ──────────────────────────────────────────────────────────────
 function drawCat(x,y,dir,frame,pal){
   x=x|0; y=y|0;
   if(dir<0){ ctx.save(); ctx.translate(x+8,y); ctx.scale(-1,1); ctx.translate(-8,0); x=0;y=0; }
   const {bd,bl,ey,er,sk}=pal;
-  // 尾巴（左侧，身后）
   px(bd,x+0,y+5,2,6); px(bd,x+1,y+4,2,7); px(bd,x+0,y+10,3,2);
-  // 身体
   px(bd,x+3,y+7,10,5);
-  px(bl,x+5,y+8,6,3);   // 肚皮
-  // 头
+  px(bl,x+5,y+8,6,3);
   px(bd,x+5,y+2,9,6);
-  px(sk,x+5,y+2,9,1);   // 头顶暗色
-  // 耳朵
+  px(sk,x+5,y+2,9,1);
   px(bd,x+6,y+0,3,3); px(er,x+7,y+1,1,1);
   px(bd,x+11,y+0,3,3); px(er,x+12,y+1,1,1);
-  // 眼睛
   px(ey,x+7,y+3,2,2);  px('#fff',x+7,y+3,1,1);  px('#000',x+8,y+4,1,1);
   px(ey,x+11,y+3,2,2); px('#fff',x+11,y+3,1,1); px('#000',x+12,y+4,1,1);
-  // 鼻子 & 胡须
   px('#ffaaaa',x+10,y+6,2,1); px('#cc5555',x+10,y+6,1,1);
   px('#b0b0b0',x+3,y+5,2,1); px('#b0b0b0',x+3,y+6,2,1);
-  // 腿
   const f=frame&1;
   if(frame===4){
     px(bd,x+4,y+11,3,2); px(bd,x+9,y+11,3,2);
@@ -142,7 +135,6 @@ function drawClouds(camX,lpxW){
 }
 
 // ── 关卡数据 ──────────────────────────────────────────────────────────────
-// 跳跃高度≈84px≈5格，所以平台放在第7-11行（第12行是地面）
 function makePRow(cols){
   const a=new Array(LEVEL_W).fill(' ');
   for(const c of cols) for(let i=0;i<4;i++) if(c+i<LEVEL_W) a[c+i]='P';
@@ -153,21 +145,21 @@ function makeGRow(ch){ return ch.repeat(LEVEL_W); }
 const LEVEL1={
   bg:'#5c94fc',
   rows:[
-    makeGRow(' '),                                // 0
-    makeGRow(' '),                                // 1
-    makeGRow(' '),                                // 2
-    makeGRow(' '),                                // 3
-    makeGRow(' '),                                // 4
-    makeGRow(' '),                                // 5
-    makeGRow(' '),                                // 6
-    makePRow([62,88]),                            // 7  最高平台
-    makePRow([28,46,65,83,99]),                   // 8  高平台
-    makePRow([14,33,52,70,85]),                   // 9  中高平台
-    makePRow([8,22,40,58,75,92]),                 // 10 中平台
-    makePRow([5,17,34,50,67,82,97]),              // 11 低平台（地面上一格）
-    makeGRow('G'),                                // 12 地面
-    makeGRow('D'),                                // 13
-    makeGRow('D'),                                // 14
+    makeGRow(' '),
+    makeGRow(' '),
+    makeGRow(' '),
+    makeGRow(' '),
+    makeGRow(' '),
+    makeGRow(' '),
+    makeGRow(' '),
+    makePRow([62,88]),
+    makePRow([28,46,65,83,99]),
+    makePRow([14,33,52,70,85]),
+    makePRow([8,22,40,58,75,92]),
+    makePRow([5,17,34,50,67,82,97]),
+    makeGRow('G'),
+    makeGRow('D'),
+    makeGRow('D'),
   ],
   playerStart:[2*T, 12*T-14],
   mousePos:[(LEVEL_W-5)*T, 12*T-16],
@@ -289,7 +281,6 @@ class Camera{
 // ── HUD ───────────────────────────────────────────────────────────────────
 function drawHUD(t,pal){
   px('#000010',0,0,SW,HUD_H); px('#111128',0,HUD_H-1,SW,1);
-  // 小猫图标
   ctx.save(); ctx.translate(2,1); ctx.scale(0.7,0.7); drawCat(0,0,1,0,pal); ctx.restore();
   const mins=Math.floor(t/60), secs=Math.floor(t%60);
   ctx.font='8px monospace';
@@ -311,16 +302,13 @@ function drawSelectScreen(sel,t){
     const col=i%3, row=Math.floor(i/3);
     const cx=gx+col*cW, cy=gy+row*cH;
     const pal=CAT_PALS[i], selected=i===sel;
-    // 边框
     px(selected?'#f8f820':'#1840a0',cx,cy,cW,cH);
     px(selected?'#2050d0':'#142880',cx+2,cy+2,cW-4,cH-4);
-    // 猫咪（2x放大）
     ctx.save();
     ctx.translate(cx+cW/2-16, cy+14);
     ctx.scale(2,2);
     drawCat(0,0,1,(t*3|0)%4,pal);
     ctx.restore();
-    // 名字
     ctx.font='7px monospace';
     ctx.fillStyle=selected?'#f8f820':'#a0c0f0';
     ctx.textAlign='center';
@@ -345,7 +333,6 @@ function drawTitleScreen(t){
   ctx.fillStyle=(t*2|0)%2===0?'#ffffff':'#606060';
   ctx.fillText('按 ENTER 开始',SW/2,154);
   ctx.textAlign='left';
-  // 展示3只猫
   for(let i=0;i<3;i++){
     ctx.save(); ctx.translate(50+i*60, 172); ctx.scale(2,2);
     drawCat(0,0,1,(t*3+i|0)%4,CAT_PALS[i]);
@@ -421,7 +408,6 @@ function draw(){
       drawHUD(timeLeft,player.pal);
       drawOverlay('GAME OVER',(timeLeft<=0?'时间到! 老鼠跑了!':'猫咪掉下去了!')+'  ENTER重试','#f83800'); break;
   }
-  // 离屏canvas → 显示canvas（像素完美缩放）
   dctx.drawImage(OC,0,0,SW*SCALE,SH*SCALE);
 }
 
